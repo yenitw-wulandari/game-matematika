@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ular Tangga Lingkaran — Game Matematika Interaktif</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#20303c; --paper:#fffdf7; --red:#e5484d; --blue:#2f6fe0;
+  --yellow:#f5b301; --green:#2ea44f; --purple:#8e5ad1; --orange:#f08c2e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Nunito',sans-serif;color:var(--ink);min-height:100vh;overflow-x:hidden;
+  background:#fdf3e0;
+  background-image:radial-gradient(rgba(229,72,77,.08) 6px,transparent 7px),
+                   radial-gradient(rgba(47,111,224,.08) 6px,transparent 7px),
+                   radial-gradient(rgba(245,179,1,.10) 6px,transparent 7px);
+  background-size:130px 130px,130px 130px,130px 130px;
+  background-position:0 0,45px 65px,90px 20px;
+}
+button{font-family:inherit}
+sup{font-size:.68em}
+#cfx{position:fixed;inset:0;z-index:95;pointer-events:none}
+
+/* lingkaran melayang dekoratif */
+.flo{position:fixed;border-radius:50%;z-index:0;pointer-events:none;opacity:.14;animation:floaty ease-in-out infinite alternate}
+@keyframes floaty{to{transform:translateY(-36px) rotate(20deg)}}
+
+/* ===== HEADER ===== */
+header{position:relative;z-index:2;max-width:1240px;margin:0 auto;padding:18px 16px 4px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{position:relative;width:64px;height:64px;flex:0 0 auto}
+.logo .ring{position:absolute;inset:0;border-radius:50%;border:5px dashed var(--red);animation:spin 14s linear infinite}
+.logo .core{position:absolute;inset:13px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe38a,var(--yellow) 65%);box-shadow:0 4px 0 rgba(0,0,0,.15)}
+@keyframes spin{to{transform:rotate(360deg)}}
+h1{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(1.6rem,4.4vw,2.6rem);line-height:1.05;letter-spacing:.5px}
+h1 .u{color:var(--red);text-shadow:0 3px 0 rgba(0,0,0,.12)}
+h1 .t{color:var(--blue)}
+.badge{display:inline-block;background:var(--ink);color:#ffe38a;font-weight:800;font-size:.68rem;
+  letter-spacing:.16em;padding:.5em 1.1em;border-radius:999px;transform:rotate(-2deg)}
+.sub{font-weight:700;color:#7a6a4d;font-size:.85rem}
+.hspace{flex:1}
+.iconBtn{width:50px;height:50px;border-radius:50%;border:3px solid var(--ink);background:#fff;
+  font-size:1.3rem;cursor:pointer;box-shadow:0 4px 0 rgba(32,48,60,.25);transition:transform .15s}
+.iconBtn:hover{transform:translateY(-2px) rotate(-6deg)}
+.iconBtn:active{transform:translateY(2px)}
+
+/* ===== LAYOUT ===== */
+main{position:relative;z-index:2;max-width:1240px;margin:10px auto 40px;padding:0 16px;
+  display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:20px;align-items:start}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+
+/* ===== PAPAN ===== */
+.boardWrap{position:relative;background:#fff;border-radius:24px;padding:12px;
+  box-shadow:0 14px 30px rgba(120,80,20,.18),0 4px 0 rgba(120,80,20,.10);max-width:720px;margin:0 auto;width:100%}
+.board{position:relative;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);
+  gap:3px;background:var(--ink);border-radius:14px;overflow:hidden;aspect-ratio:1/1;padding:3px}
+.cell{position:relative;border-radius:6px;font-family:'Fredoka',sans-serif}
+.cell .num{position:absolute;top:2px;left:4px;font-size:clamp(.42rem,1.35vw,.68rem);font-weight:600;opacity:.6}
+.cell.c1,.cell.c100{display:grid;place-items:center}
+.cell.c1{background:repeating-radial-gradient(circle,#fff 0 12%,#ffd0d0 12% 24%,#fff 24% 36%,#ffd0d0 36% 48%,#fff 48%)!important}
+.cell.c1 .tag,.cell.c100 .tag{font-size:clamp(.4rem,1.2vw,.6rem);font-weight:700;z-index:1}
+.cell.c100{background:repeating-radial-gradient(circle,#ffe9a8 0 12%,#f5b301 12% 24%,#ffe9a8 24% 36%,#f5b301 36% 48%,#ffe9a8 48%)!important}
+.cell.here::after{content:'';position:absolute;inset:7%;border:3px dashed rgba(32,48,60,.75);border-radius:50%;animation:spin 5s linear infinite}
+#overlay{position:absolute;inset:12px;width:calc(100% - 24px);height:calc(100% - 24px);z-index:3;pointer-events:none}
+#pieces{position:absolute;inset:12px;z-index:5;pointer-events:none}
+.piece{position:absolute;width:5.4%;aspect-ratio:1;transform:translate(-50%,-50%);
+  transition:left .22s ease,top .22s ease}
+.piece.glide{transition:left .75s cubic-bezier(.35,.8,.35,1.15),top .75s cubic-bezier(.35,.8,.35,1.15)}
+.pd{width:100%;height:100%;border-radius:50%;border:3px solid #fff;
+  box-shadow:0 4px 8px rgba(0,0,0,.35),inset -3px -5px 8px rgba(0,0,0,.28),inset 3px 5px 7px rgba(255,255,255,.45)}
+.pd.hop{animation:hop .24s ease}
+@keyframes hop{45%{transform:scale(1.4) translateY(-14%)}}
+.ribbon{margin:10px auto 0;width:max-content;max-width:100%;text-align:center;background:var(--ink);color:#ffe38a;
+  font-family:'Fredoka',sans-serif;font-weight:600;font-size:.78rem;letter-spacing:.06em;
+  padding:.45em 1.2em;border-radius:999px}
+.ribbon b{color:#8dffb0}
+
+/* ===== PANEL ===== */
+.panel{display:grid;gap:14px}
+.card{background:var(--paper);border-radius:18px;padding:14px 16px;box-shadow:0 6px 0 rgba(32,48,60,.10)}
+.turnCard{color:#fff;border-radius:18px;padding:12px 18px;font-family:'Fredoka',sans-serif;
+  display:flex;align-items:center;gap:12px;box-shadow:0 6px 0 rgba(32,48,60,.18);transition:background .3s}
+.turnCard .dot{width:34px;height:34px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.5);
+  box-shadow:inset -3px -4px 6px rgba(0,0,0,.2);flex:0 0 auto}
+.turnCard small{display:block;font-family:'Nunito';font-weight:800;font-size:.62rem;letter-spacing:.2em;opacity:.85}
+.turnCard b{font-size:1.25rem;font-weight:700;letter-spacing:.5px}
+.players{display:grid;gap:6px}
+.prow{display:flex;align-items:center;gap:10px;background:#fff;border:3px solid transparent;border-radius:12px;
+  padding:6px 10px;font-weight:800;font-size:.86rem;transition:all .25s}
+.prow .pdot{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.25);flex:0 0 auto}
+.prow .pos{margin-left:auto;background:#f1ede2;border-radius:999px;padding:.15em .7em;font-size:.74rem}
+.prow .st{font-size:.74rem;color:#2c8f3a}
+.prow.cur{border-color:var(--ink);box-shadow:0 4px 0 rgba(32,48,60,.15);transform:translateX(4px)}
+.prow.cur::before{content:'▶';font-size:.7rem;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+
+/* kuis */
+.quiz h3{font-family:'Fredoka',sans-serif;font-size:.8rem;letter-spacing:.18em;color:#8a7a5c;font-weight:600;margin-bottom:8px}
+.qtext{font-weight:800;font-size:1.02rem;line-height:1.55;min-height:2.6em}
+.qopts{display:grid;gap:8px;margin-top:10px}
+.qopt{display:flex;align-items:center;gap:10px;text-align:left;background:#fff;border:3px solid #e8e0cc;
+  border-radius:12px;padding:9px 11px;font:inherit;font-weight:800;font-size:.92rem;color:var(--ink);
+  cursor:pointer;box-shadow:0 4px 0 #e0d6ba;transition:transform .15s,box-shadow .15s,border-color .15s;line-height:1.35}
+.qopt:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 0 #e0d6ba;border-color:var(--yellow)}
+.qopt:disabled{cursor:default}
+.qopt.dim{opacity:.5}
+.qkey{flex:0 0 30px;height:30px;display:grid;place-items:center;border-radius:9px;background:var(--yellow);
+  font-family:'Fredoka';font-weight:700;color:#6b4426;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12)}
+.qopt.right{background:#e9ffe9;border-color:var(--green);box-shadow:0 4px 0 #2c8f3a;opacity:1;animation:wob .45s}
+.qopt.right .qkey{background:var(--green);color:#fff}
+.qopt.wrong{background:#ffecec;border-color:var(--red);box-shadow:0 4px 0 #c23a3a;animation:shakeX .45s}
+.qopt.wrong .qkey{background:var(--red);color:#fff}
+@keyframes wob{40%{transform:scale(1.04) rotate(.6deg)}}
+@keyframes shakeX{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+.exbox{margin-top:10px;background:#f3f8ff;border:2px dashed #9db9e8;border-radius:12px;padding:9px 11px;
+  font-size:.85rem;line-height:1.55;font-weight:700;color:#31517c;animation:popIn .3s cubic-bezier(.34,1.56,.64,1)}
+.exbox b{color:#1f4fa8}
+@keyframes popIn{from{opacity:0;transform:scale(.85)}}
+
+/* dadu */
+.diceZone{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.die{width:88px;height:88px;flex:0 0 auto;background:#fff;border-radius:20px;border:4px solid var(--ink);
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);place-items:center;
+  padding:12px;box-shadow:0 7px 0 rgba(32,48,60,.3);transition:box-shadow .3s}
+.die .pip{width:15px;height:15px;border-radius:50%;background:var(--ink);opacity:0;transition:opacity .05s}
+.die .pip.on{opacity:1}
+.die.rolling{animation:rumble .12s linear infinite}
+.die.armed{box-shadow:0 7px 0 rgba(32,48,60,.3),0 0 0 5px rgba(245,179,1,.55);animation:glowP 1s ease-in-out infinite}
+@keyframes rumble{0%{transform:rotate(-10deg) scale(1.05)}50%{transform:rotate(9deg) scale(.96)}100%{transform:rotate(-7deg) scale(1.04)}}
+@keyframes glowP{50%{box-shadow:0 7px 0 rgba(32,48,60,.3),0 0 0 11px rgba(245,179,1,.25)}}
+.die.landed{animation:land .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes land{0%{transform:scale(1.25) rotate(6deg)}100%{transform:scale(1)}}
+.diceRight{flex:1;min-width:170px;display:grid;gap:8px}
+.bigBtn{font-family:'Fredoka';font-weight:700;font-size:1.05rem;letter-spacing:.5px;border:none;cursor:pointer;
+  border-radius:14px;background:var(--red);color:#fff;padding:.7em 1.2em;box-shadow:0 5px 0 var(--red);
+  transition:transform .15s,box-shadow .15s,opacity .2s}
+.bigBtn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 7px 0 #a02e33}
+.bigBtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #a02e33}
+.bigBtn:disabled{background:#c9c2b2;box-shadow:0 5px 0 #a9a291;cursor:not-allowed;opacity:.85}
+.bigBtn.gold{background:var(--yellow);color:#5c4300;box-shadow:0 5px 0 #c58f00}
+.bigBtn.gold:hover:not(:disabled){box-shadow:0 7px 0 #c58f00}
+.bigBtn.gold:active:not(:disabled){box-shadow:0 1px 0 #c58f00}
+.bigBtn.ghost{background:#fff;color:var(--ink);border:3px solid var(--ink);box-shadow:0 5px 0 rgba(32,48,60,.3)}
+#status{font-weight:900;font-size:.95rem;min-height:1.4em}
+.logBox{max-height:130px;overflow:auto}
+.logBox ul{list-style:none;display:grid;gap:4px;font-size:.78rem;font-weight:700;color:#5a6b7a}
+.logBox li{background:#fff;border-radius:8px;padding:4px 9px;border-left:5px solid var(--yellow);animation:popIn .25s}
+.ctrlRow{display:flex;gap:8px}
+.miniBtn{flex:1;font-family:'Fredoka';font-weight:600;font-size:.82rem;border:3px solid var(--ink);background:#fff;
+  border-radius:12px;padding:.55em .6em;cursor:pointer;box-shadow:0 4px 0 rgba(32,48,60,.25);transition:transform .15s}
+.miniBtn:hover{transform:translateY(-2px)}
+.miniBtn:active{transform:translateY(2px)}
+
+/* ===== OVERLAY ===== */
+.ovl{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(22,35,50,.6);
+  padding:16px;animation:fadeIn .3s}
+.ovl[hidden]{display:none}
+@keyframes fadeIn{from{opacity:0}}
+.panelOv{width:min(600px,100%);background:var(--paper);border-radius:26px;padding:clamp(18px,4vw,30px);
+  box-shadow:0 24px 60px rgba(0,0,0,.4),0 0 0 6px #fff,0 0 0 12px rgba(255,255,255,.25);
+  text-align:center;max-height:94vh;overflow:auto;animation:popIn .45s cubic-bezier(.34,1.56,.64,1)}
+.panelOv h2{font-family:'Fredoka';font-weight:700;font-size:clamp(1.6rem,5vw,2.3rem);line-height:1.1}
+.panelOv .lead{font-weight:700;color:#7a6a4d;font-size:.9rem;margin:6px 0 16px}
+.countSel{display:flex;gap:10px;justify-content:center;margin:14px 0}
+.cnt{flex:0 0 84px;border:4px solid var(--ink);border-radius:16px;background:#fff;padding:12px 6px;cursor:pointer;
+  font-family:'Fredoka';font-weight:700;font-size:1.5rem;box-shadow:0 5px 0 rgba(32,48,60,.25);transition:all .15s}
+.cnt small{display:block;font-family:'Nunito';font-size:.6rem;font-weight:800;letter-spacing:.14em;color:#8a7a5c}
+.cnt:hover{transform:translateY(-3px)}
+.cnt.sel{background:var(--yellow);color:#5c4300;transform:translateY(-3px)}
+.cnt.sel small{color:#7a5c00}
+.nameGrid{display:grid;gap:8px;margin:14px auto;max-width:420px}
+.nrow{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:7px 10px;border:3px solid #eee2c8}
+.nrow .pdot{width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.25)}
+.nrow input{flex:1;border:none;background:transparent;font:inherit;font-weight:800;font-size:.92rem;outline:none;min-width:0}
+.rulesList{list-style:none;text-align:left;margin:14px auto;max-width:450px;display:grid;gap:7px;font-size:.85rem;line-height:1.5;font-weight:700}
+.rulesList li{background:#fff;border-radius:12px;padding:8px 12px;border:2px solid #eee2c8}
+.bigStart{font-family:'Fredoka';font-weight:700;font-size:clamp(1.1rem,3vw,1.4rem);border:none;cursor:pointer;
+  border-radius:16px;background:var(--green);color:#fff;padding:.7em 1.8em;box-shadow:0 6px 0 #1f7a3a;
+  transition:transform .15s,box-shadow .15s;letter-spacing:.5px}
+.bigStart:hover{transform:translateY(-3px);box-shadow:0 9px 0 #1f7a3a}
+.bigStart:active{transform:translateY(2px);box-shadow:0 1px 0 #1f7a3a}
+.winPiece{width:86px;height:86px;border-radius:50%;margin:6px auto 10px;border:6px solid #fff;
+  box-shadow:0 8px 18px rgba(0,0,0,.3),inset -5px -8px 12px rgba(0,0,0,.28),inset 5px 8px 10px rgba(255,255,255,.4);
+  animation:bounce 1s ease-in-out infinite}
+@keyframes bounce{50%{transform:translateY(-12px)}}
+.winStats{display:grid;gap:6px;max-width:420px;margin:14px auto 18px}
+.wrow{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:7px 12px;
+  border:2px solid #eee2c8;font-weight:800;font-size:.86rem;text-align:left}
+.wrow .pdot{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 3px rgba(0,0,0,.25)}
+.wrow .medal{margin-left:auto;font-size:1rem}
+@media(max-width:560px){.die{width:72px;height:72px;padding:9px}.die .pip{width:12px;height:12px}}
+</style>
+</head>
+<body>
+<canvas id="cfx"></canvas>
+<div id="floaters"></div>
+
+<header>
+  <div class="logo"><div class="ring"></div><div class="core"></div></div>
+  <div>
+    <h1><span class="u">ULAR TANGGA</span> <span class="t">LINGKARAN</span></h1>
+    <div class="sub">Game Matematika Interaktif • Jawab soal, kocok dadu, capai kotak 100!</div>
+  </div>
+  <div class="hspace"></div>
+  <button class="iconBtn" id="sndBtn" title="Suara nyala/mati">🔊</button>
+</header>
+
+<main>
+  <section>
+    <div class="boardWrap">
+      <div class="board" id="board"></div>
+      <svg id="overlay" viewBox="0 0 1000 1000"></svg>
+      <div id="pieces"></div>
+    </div>
+    <div class="ribbon">🐍 Kepala ular = <b>meluncur turun</b> &nbsp;•&nbsp; 🪜 Pangkal tangga = <b>naik</b> &nbsp;•&nbsp; Kotak 100 = 🏁</div>
+  </section>
+
+  <aside class="panel">
+    <div class="turnCard" id="turnCard">
+      <div class="dot" id="turnDot"></div>
+      <div><small>GILIRAN</small><b id="turnName">—</b></div>
+    </div>
+
+    <div class="card players" id="playersBox"></div>
+
+    <div class="card quiz">
+      <h3>⭕ SOAL MATERI LINGKARAN</h3>
+      <div class="qtext" id="qText"></div>
+      <div class="qopts" id="qOpts"></div>
+      <div class="exbox" id="exBox" hidden></div>
+    </div>
+
+    <div class="card diceZone">
+      <div class="die" id="die"></div>
+      <div class="diceRight">
+        <button class="bigBtn" id="rollBtn" disabled>🎲 KOCOK DADU</button>
+        <div id="status">Siapkan pemain…</div>
+      </div>
+    </div>
+
+    <div class="card logBox"><ul id="log"></ul></div>
+
+    <div class="ctrlRow">
+      <button class="miniBtn" id="newBoardBtn">🔀 Papan Baru</button>
+      <button class="miniBtn" id="menuBtn">🏠 Menu Pemain</button>
+    </div>
+  </aside>
+</main>
+
+<!-- ===== SETUP ===== -->
+<div class="ovl" id="ovSetup">
+  <div class="panelOv">
+    <h2>⭕ ULAR TANGGA LINGKARAN</h2>
+    <p class="lead">Pilih jumlah pemain, tulis nama, lalu mulai!</p>
+    <div class="countSel">
+      <button class="cnt sel" data-n="2">2<small>PEMAIN</small></button>
+      <button class="cnt" data-n="3">3<small>PEMAIN</small></button>
+      <button class="cnt" data-n="4">4<small>PEMAIN</small></button>
+    </div>
+    <div class="nameGrid" id="nameGrid"></div>
+    <ul class="rulesList">
+      <li>📝 Setiap giliran, jawab <b>1 soal materi lingkaran</b>.</li>
+      <li>✅ Jawaban <b>benar</b> → boleh kocok dadu &amp; bidak bergerak otomatis.</li>
+      <li>❌ Jawaban <b>salah</b> → giliran hangus (pembahasan tetap muncul!).</li>
+      <li>🎲 Harus mendarat <b>tepat di 100</b>; lebih = memantul mundur.</li>
+      <li>🪜 Pangkal tangga membawamu naik, 🐍 kepala ular menyeretmu turun!</li>
+    </ul>
+    <button class="bigStart" id="startBtn">🚀 MULAI PERMAINAN</button>
+  </div>
+</div>
+
+<!-- ===== MENANG ===== -->
+<div class="ovl" id="ovWin" hidden>
+  <div class="panelOv">
+    <div class="winPiece" id="winPiece"></div>
+    <h2 id="winTitle">MENANG!</h2>
+    <p class="lead" id="winSub">Berhasil mencapai kotak 100!</p>
+    <div class="winStats" id="winStats"></div>
+    <button class="bigStart" id="againBtn">🔄 MAIN LAGI</button>
+    <p style="margin-top:12px"><button class="miniBtn" id="toSetupBtn" style="max-width:220px">🏠 Ubah Pemain</button></p>
+  </div>
+</div>
+
+<script>
+/* ================= BANK SOAL LINGKARAN ================= */
+const POOL=[
+{q:`Rumus <b>keliling</b> lingkaran dengan jari-jari <i>r</i> adalah…`,o:[`π<i>r</i><sup>2</sup>`,`2π<i>r</i>`,`π<i>r</i>`,`4<i>r</i>`],a:1,ex:`Keliling = <b>2π<i>r</i></b> atau π<i>d</i>. Adapun π<i>r</i><sup>2</sup> adalah rumus luas.`},
+{q:`Rumus <b>luas</b> lingkaran dengan jari-jari <i>r</i> adalah…`,o:[`2π<i>r</i>`,`π<i>r</i><sup>2</sup>`,`π<i>d</i>`,`2π<i>r</i><sup>2</sup>`],a:1,ex:`Luas = <b>π<i>r</i><sup>2</sup></b>. Jangan tertukar dengan keliling 2π<i>r</i>, ya!`},
+{q:`Keliling lingkaran dengan jari-jari 7 cm (π = 22/7) adalah…`,o:[`22 cm`,`44 cm`,`154 cm`,`88 cm`],a:1,ex:`K = 2 × 22/7 × 7 = <b>44 cm</b>.`},
+{q:`Keliling lingkaran dengan diameter 14 cm (π = 22/7) adalah…`,o:[`44 cm`,`88 cm`,`22 cm`,`196 cm`],a:0,ex:`K = π × <i>d</i> = 22/7 × 14 = <b>44 cm</b>.`},
+{q:`Luas lingkaran dengan jari-jari 10 cm (π = 3,14) adalah…`,o:[`62,8 cm<sup>2</sup>`,`314 cm<sup>2</sup>`,`31,4 cm<sup>2</sup>`,`628 cm<sup>2</sup>`],a:1,ex:`L = 3,14 × 10 × 10 = <b>314 cm<sup>2</sup></b>.`},
+{q:`Luas lingkaran dengan diameter 20 cm (π = 3,14) adalah…`,o:[`314 cm<sup>2</sup>`,`628 cm<sup>2</sup>`,`62,8 cm<sup>2</sup>`,`1.256 cm<sup>2</sup>`],a:0,ex:`<i>r</i> = 20 ÷ 2 = 10 cm → L = 3,14 × 10<sup>2</sup> = <b>314 cm<sup>2</sup></b>.`},
+{q:`Ruas garis yang menghubungkan <b>titik pusat</b> dengan titik pada lingkaran disebut…`,o:[`diameter`,`tali busur`,`jari-jari`,`apotema`],a:2,ex:`Itulah <b>jari-jari</b>. Diameter = 2 × jari-jari.`},
+{q:`Tali busur terpanjang yang <b>melalui titik pusat</b> disebut…`,o:[`jari-jari`,`diameter`,`busur`,`apotema`],a:1,ex:`Tali busur melalui pusat = <b>diameter</b>, panjangnya 2× jari-jari.`},
+{q:`Daerah pada lingkaran yang dibatasi oleh <b>dua jari-jari dan satu busur</b> disebut…`,o:[`tembereng`,`juring`,`busur`,`apotema`],a:1,ex:`Seperti potongan pizza 🍕 — namanya <b>juring</b>.`},
+{q:`Daerah yang dibatasi oleh <b>busur dan tali busur</b> disebut…`,o:[`juring`,`tembereng`,`busur`,`jari-jari`],a:1,ex:`Itu disebut <b>tembereng</b>.`},
+{q:`Garis lengkung yang merupakan bagian dari lingkaran dan menghubungkan dua titik disebut…`,o:[`tali busur`,`busur`,`diameter`,`garis singgung`],a:1,ex:`Garis lengkungnya = <b>busur</b>; garis lurus penghubung dua titiknya = tali busur.`},
+{q:`Garis yang tegak lurus dari titik pusat terhadap tali busur disebut…`,o:[`apotema`,`jari-jari`,`diameter`,`tembereng`],a:0,ex:`Garis itu disebut <b>apotema</b>.`},
+{q:`Pendekatan nilai π (pi) yang umum digunakan adalah…`,o:[`22/7 atau 3,14`,`7/22 atau 1,34`,`3,41 atau 7/22`,`2,14 atau 4/7`],a:0,ex:`π ≈ <b>22/7 ≈ 3,14</b>.`},
+{q:`Keliling sebuah lingkaran 88 cm (π = 22/7). Jari-jarinya adalah…`,o:[`7 cm`,`14 cm`,`28 cm`,`44 cm`],a:1,ex:`<i>r</i> = K ÷ (2π) = 88 ÷ (2 × 22/7) = 88 × 7/44 = <b>14 cm</b>.`},
+{q:`Luas sebuah lingkaran 154 cm<sup>2</sup> (π = 22/7). Jari-jarinya adalah…`,o:[`7 cm`,`14 cm`,`21 cm`,`49 cm`],a:0,ex:`<i>r</i><sup>2</sup> = 154 × 7/22 = 49 → <i>r</i> = <b>7 cm</b>.`},
+{q:`Besar sudut satu putaran penuh pada lingkaran adalah…`,o:[`180°`,`360°`,`90°`,`270°`],a:1,ex:`Satu putaran penuh = <b>360°</b>.`},
+{q:`Sudut keliling yang menghadap busur yang sama dengan sudut pusat 100° besarnya…`,o:[`100°`,`200°`,`50°`,`25°`],a:2,ex:`Sudut keliling = ½ × sudut pusat = ½ × 100° = <b>50°</b>.`},
+{q:`Panjang busur dengan sudut pusat 90° dan jari-jari 7 cm (π = 22/7) adalah…`,o:[`11 cm`,`22 cm`,`44 cm`,`5,5 cm`],a:0,ex:`= 90/360 × 2π<i>r</i> = ¼ × 44 = <b>11 cm</b>.`},
+{q:`Luas juring dengan sudut pusat 90° dan jari-jari 7 cm (π = 22/7) adalah…`,o:[`38,5 cm<sup>2</sup>`,`77 cm<sup>2</sup>`,`154 cm<sup>2</sup>`,`19,25 cm<sup>2</sup>`],a:0,ex:`= 90/360 × π<i>r</i><sup>2</sup> = ¼ × 154 = <b>38,5 cm<sup>2</sup></b>.`},
+{q:`Keliling bangun <b>setengah lingkaran</b> dengan diameter 14 cm (π = 22/7) adalah…`,o:[`22 cm`,`36 cm`,`50 cm`,`44 cm`],a:1,ex:`= ½ keliling + diameter = 22 + 14 = <b>36 cm</b>. Jangan lupa diameternya ikut dihitung!`},
+{q:`Lingkaran dengan diameter 30 cm (π = 3,14), kelilingnya adalah…`,o:[`94,2 cm`,`47,1 cm`,`706,5 cm`,`188,4 cm`],a:0,ex:`K = π × <i>d</i> = 3,14 × 30 = <b>94,2 cm</b>.`},
+{q:`Luas lingkaran dengan jari-jari 21 cm (π = 22/7) adalah…`,o:[`132 cm<sup>2</sup>`,`1.386 cm<sup>2</sup>`,`616 cm<sup>2</sup>`,`264 cm<sup>2</sup>`],a:1,ex:`L = 22/7 × 21 × 21 = 22 × 63 = <b>1.386 cm<sup>2</sup></b>. (132 itu kelilingnya!)`},
+{q:`Sebuah roda berjari-jari 35 cm berputar 50 kali (π = 22/7). Jarak yang ditempuh adalah…`,o:[`110 m`,`220 m`,`55 m`,`11 m`],a:0,ex:`Keliling roda = 2 × 22/7 × 35 = 220 cm. Jarak = 220 × 50 = 11.000 cm = <b>110 m</b>.`},
+{q:`Garis yang menyentuh lingkaran <b>tepat di satu titik</b> disebut…`,o:[`tali busur`,`garis singgung`,`apotema`,`diameter`],a:1,ex:`Itu <b>garis singgung</b>, dan tegak lurus terhadap jari-jari di titik singgungnya.`},
+{q:`Dua lingkaran <b>bersinggungan di luar</b> jika jarak kedua pusatnya sama dengan…`,o:[`selisih kedua jari-jari`,`jumlah kedua jari-jari`,`jumlah kedua diameter`,`setengah jumlah jari-jari`],a:1,ex:`Bersinggungan di luar → jarak pusat = <b><i>r</i><sub>1</sub> + <i>r</i><sub>2</sub></b>.`},
+{q:`Luas daerah cincin lingkaran dengan jari-jari luar 10 cm dan jari-jari dalam 7 cm (π = 3,14) adalah…`,o:[`160,14 cm<sup>2</sup>`,`94,2 cm<sup>2</sup>`,`314 cm<sup>2</sup>`,`154 cm<sup>2</sup>`],a:0,ex:`L = π(<i>R</i><sup>2</sup> − <i>r</i><sup>2</sup>) = 3,14 × (100 − 49) = 3,14 × 51 = <b>160,14 cm<sup>2</sup></b>.`}
+];
+
+/* ================= KONSTANTA ================= */
+const P COLORS=null; // (placeholder agar parser aman)
+const PC=[{c:'#e5484d',n:'Merah'},{c:'#2f6fe0',n:'Biru'},{c:'#f5b301',n:'Kuning'},{c:'#2ea44f',n:'Hijau'}];
+const KEYS=['A','B','C','D'];
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+const SNAKE_COLS=[['#3aa655','#26743a'],['#8e5ad1','#6a3fb0'],['#e0567b','#b23a5c'],['#20b2aa','#157f79'],['#f08c2e','#c56a15'],['#5a8fe0','#3d68b5']];
+const OFFS=[[-1.7,-1.7],[1.7,-1.7],[-1.7,1.7],[1.7,1.7]];
+
+/* ================= STATE ================= */
+const $=id=>document.getElementById(id);
+let players=[],cur=0,busy=false,gameOver=false,armed=false,answered=false,curQ=null,curOrder=null;
+let deck=[],ladders={},snakes=[],ladderList=[],snakeList=[],cellEls=[],muted=false;
+
+/* ================= SUARA ================= */
+let actx=null;
+const ac=()=>{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();return actx};
+function tone(f,d,type='sine',vol=.16,when=0,slide){if(muted)return;try{const a=ac(),o=a.createOscillator(),g=a.createGain(),t=a.currentTime+when;
+o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);
+g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.05)}catch(e){}}
+const sfx={
+ ok(){tone(523,.12,'triangle',.2);tone(784,.2,'triangle',.2,.11)},
+ bad(){tone(200,.4,'sawtooth',.15,0,105)},
+ roll(){for(let i=0;i<6;i++)tone(300+Math.random()*500,.04,'square',.06,i*.12)},
+ step(k){tone(460+k*22,.05,'square',.07)},
+ ladder(){[392,494,587,784].forEach((f,i)=>tone(f,.12,'triangle',.18,i*.09))},
+ snake(){tone(700,.6,'sawtooth',.14,0,140)},
+ win(){[523,659,784,1047,1319].forEach((f,i)=>tone(f,.22,'triangle',.22,i*.13))},
+ click(){tone(700,.05,'square',.08)}
+};
+$('sndBtn').onclick=()=>{muted=!muted;$('sndBtn').textContent=muted?'🔇':'🔊'};
+
+/* ================= KONFETI ================= */
+const cvs=$('cfx'),ctx=cvs.getContext('2d');let parts=[],running=false;
+const CPAL=['#e5484d','#2f6fe0','#f5b301','#2ea44f','#8e5ad1','#fff'];
+function fitCvs(){cvs.width=innerWidth;cvs.height=innerHeight}fitCvs();addEventListener('resize',fitCvs);
+function burst(x,y,n=60){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*11,vy:-(3+Math.random()*7),g:.28,s:4+Math.random()*6,c:CPAL[i%6],r:Math.random()*6.28,vr:(Math.random()-.5)*.35,life:60+Math.random()*50})}
+function rain(n=160){for(let i=0;i<n;i++)parts.push({x:Math.random()*innerWidth,y:-20-Math.random()*innerHeight*.6,vx:(Math.random()-.5)*2,vy:2+Math.random()*3.5,g:.05,s:5+Math.random()*6,c:CPAL[i%6],r:Math.random()*6.28,vr:(Math.random()-.5)*.3,life:280})}
+function loop(){running=true;ctx.clearRect(0,0,cvs.width,cvs.height);
+parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.r+=p.vr;p.life--;if(p.life<=0||p.y>innerHeight+30)return false;
+ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.globalAlpha=Math.min(1,p.life/40);
+ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.62);ctx.restore();return true});
+if(parts.length)requestAnimationFrame(loop);else{running=false;ctx.clearRect(0,0,cvs.width,cvs.height)}}
+const fx=f=>{f();if(!running)loop()};
+
+/* ================= UTIL ================= */
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const rndInt=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function log(msg){const li=document.createElement('li');li.innerHTML=msg;const L=$('log');L.prepend(li);while(L.children.length>7)L.lastChild.remove()}
+function status(t){$('status').innerHTML=t}
+function cellRC(n){const r=Math.floor((n-1)/10);let c=(n-1)%10;if(r%2)c=9-c;return[r,c]}
+function centerXY(n){const[r,c]=cellRC(n);return[(c+.5)*100,(9.5-r)*100]}
+
+/* ================= DEKORASI ================= */
+(function(){const box=$('floaters');for(let i=0;i<11;i++){const d=document.createElement('div');d.className='flo';
+const s=26+Math.random()*70;d.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;top:${Math.random()*100}%;
+background:${CPAL[i%6]};animation-duration:${4+Math.random()*6}s;animation-delay:-${Math.random()*5}s;
+${Math.random()<.5?`background:transparent;border:${s/6}px solid ${CPAL[i%6]}`:''}`;box.appendChild(d)}})();
+
+/* ================= PAPAN ================= */
+const PASTELS=['#ffe3e3','#fff3d6','#e3f6e7','#e0efff','#f3e5ff','#ffe9f4','#e8fff9','#fdf6dd','#fdeaca','#eef2ff'];
+function buildBoard(){
+  const B=$('board');B.innerHTML='';cellEls=[];
+  for(let vr=0;vr<10;vr++){const r=9-vr;
+    for(let c=0;c<10;c++){
+      const n=r*10+((r%2===0)?c+1:10-c);
+      const d=document.createElement('div');d.className='cell';
+      d.style.background=PASTELS[(n+r)%PASTELS.length];
+      d.innerHTML=`<span class="num">${n}</span>`;
+      if(n===1){d.classList.add('c1');d.innerHTML+=`<span class="tag">MULAI</span>`}
+      if(n===100){d.classList.add('c100');d.innerHTML+=`<span class="tag">🏁</span>`}
+      B.appendChild(d);cellEls[n]=d;
+    }}
+}
+function genSnakesLadders(){
+  ladders={};snakes={};ladderList=[];snakeList=[];
+  const starts=new Set(),ends=new Set();let guard=0;
+  while(ladderList.length<6&&guard++<4000){
+    const s=rndInt(2,68),e=rndInt(s+14,Math.min(100,s+48));
+    if(starts.has(s)||starts.has(e)||ends.has(s)||ends.has(e))continue;
+    starts.add(s);ends.add(e);ladders[s]=e;ladderList.push([s,e]);
+  }
+  guard=0;
+  while(snakeList.length<6&&guard++<4000){
+    const h=rndInt(32,98),t=rndInt(Math.max(2,h-48),h-14);
+    if(starts.has(h)||starts.has(t)||ends.has(h)||ends.has(t))continue;
+    starts.add(h);ends.add(t);snakes[h]=t;snakeList.push([h,t]);
+  }
+  ladderList.forEach(([s])=>cellEls[s].style.boxShadow='inset 0 0 0 3px rgba(46,164,79,.55)');
+  snakeList.forEach(([h])=>cellEls[h].style.boxShadow='inset 0 0 0 3px rgba(229,72,77,.55)');
+}
+function drawOverlay(){
+  const S=$('overlay');let svg='';
+  ladderList.forEach(([a,b])=>{
+    const[ax,ay]=centerXY(a),[bx,by]=centerXY(b);
+    const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len,px=-uy*14,py=ux*14;
+    let g=`<g stroke-linecap="round">`;
+    g+=`<g stroke="rgba(0,0,0,.12)" transform="translate(5,7)">`;
+    g+=`<line x1="${ax+px}" y1="${ay+py}" x2="${bx+px}" y2="${by+py}" stroke-width="9"/>`;
+    g+=`<line x1="${ax-px}" y1="${ay-py}" x2="${bx-px}" y2="${by-py}" stroke-width="9"/></g>`;
+    g+=`<line x1="${ax+px}" y1="${ay+py}" x2="${bx+px}" y2="${by+py}" stroke="#a5651d" stroke-width="9"/>`;
+    g+=`<line x1="${ax-px}" y1="${ay-py}" x2="${bx-px}" y2="${by-py}" stroke="#a5651d" stroke-width="9"/>`;
+    const rungs=Math.max(3,Math.floor(len/52));
+    for(let i=1;i<rungs;i++){const t=i/rungs,mx=ax+dx*t,my=ay+dy*t;
+      g+=`<line x1="${mx+px}" y1="${my+py}" x2="${mx-px}" y2="${my-py}" stroke="#d99a45" stroke-width="7"/>`}
+    svg+=g+'</g>';
+  });
+  snakeList.forEach(([h,t],i)=>{
+    const[hx,hy]=centerXY(h),[tx,ty]=centerXY(t);
+    const dx=tx-hx,dy=ty-hy,d=Math.hypot(dx,dy),ux=dx/d,uy=dy/d,px=-uy,py=ux;
+    const off=Math.min(64,d*.24)*(Math.random()<.5?1:-1);
+    const c1x=hx+dx*.32+px*off,c1y=hy+dy*.32+py*off,c2x=hx+dx*.68-px*off,c2y=hy+dy*.68-py*off;
+    const[main,dark]=SNAKE_COLS[i%SNAKE_COLS.length];
+    const path=`M${hx},${hy} C${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
+    svg+=`<path d="${path}" fill="none" stroke="${dark}" stroke-width="20" stroke-linecap="round"/>`;
+    svg+=`<path d="${path}" fill="none" stroke="${main}" stroke-width="13" stroke-linecap="round"/>`;
+    svg+=`<path d="${path}" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="4" stroke-dasharray="3 12" stroke-linecap="round"/>`;
+    svg+=`<circle cx="${tx}" cy="${ty}" r="5" fill="${dark}"/>`;
+    const ex=-ux,ey=-uy; // arah lidah menjauhi badan
+    svg+=`<circle cx="${hx}" cy="${hy}" r="16" fill="${main}" stroke="${dark}" stroke-width="3"/>`;
+    svg+=`<path d="M${hx+ex*15},${hy+ey*15} l${ex*10},${ey*10} m0,0 l${(ex+px*.7)*7},${(ey+py*.7)*7} m${-(ex+px*.7)*7},${-(ey+py*.7)*7} l${(ex-px*.7)*7},${(ey-py*.7)*7}" stroke="#e5484d" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    const o1x=hx+px*6+ux*4,o1y=hy+py*6+uy*4,o2x=hx-px*6+ux*4,o2y=hy-py*6+uy*4;
+    svg+=`<circle cx="${o1x}" cy="${o1y}" r="4.5" fill="#fff"/><circle cx="${o1x+ux*1.5}" cy="${o1y+uy*1.5}" r="2.2" fill="#20303c"/>`;
+    svg+=`<circle cx="${o2x}" cy="${o2y}" r="4.5" fill="#fff"/><circle cx="${o2x+ux*1.5}" cy="${o2y+uy*1.5}" r="2.2" fill="#20303c"/>`;
+  });
+  S.innerHTML=svg;
+}
+
+/* ================= BIDAK ================= */
+function makePieces(){const P=$('pieces');P.innerHTML='';
+  players.forEach((p,i)=>{const d=document.createElement('div');d.className='piece';d.id='pc'+i;
+    d.innerHTML=`<div class="pd" style="background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.75),rgba(255,255,255,0) 42%),${p.color}"></div>`;
+    P.appendChild(d);p.el=d;setPiece(p,i,true)});}
+function setPiece(p,i,instant){const[x,y]=centerXY(p.pos);
+  if(instant)p.el.style.transition='none';
+  p.el.style.left=(x/10+OFFS[i][0])+'%';p.el.style.top=(y/10+OFFS[i][1])+'%';
+  if(instant){void p.el.offsetWidth;p.el.style.transition=''}}
+function hop(p){const pd=p.el.firstChild;pd.classList.remove('hop');void pd.offsetWidth;pd.classList.add('hop')}
+function markHere(){cellEls.forEach(c=>c.classList.remove('here'));players.forEach(p=>cellEls[p.pos]&&cellEls[p.pos].classList.add('here'))}
+
+/* ================= HUD ================= */
+function renderPlayers(){
+  $('playersBox').innerHTML=players.map((p,i)=>
+    `<div class="prow ${i===cur&&!gameOver?'cur':''}">
+      <span class="pdot" style="background:${p.color}"></span>
+      <span>${p.name}</span>
+      <span class="st">✔${p.correct} ✘${p.wrong}</span>
+      <span class="pos">Kotak ${p.pos}</span>
+    </div>`).join('');
+  const p=players[cur];
+  $('turnCard').style.background=p.color;
+  $('turnName').textContent=p.name.toUpperCase();
+  $('turnDot').style.background=p.color;
+}
+
+/* ================= DADU ================= */
+(function(){const d=$('die');for(let i=0;i<9;i++){const s=document.createElement('span');s.className='pip';d.appendChild(s)}setFace(6)})();
+function setFace(v){[...$('die').children].forEach((s,i)=>s.classList.toggle('on',PIPS[v].includes(i)))}
+async function rollDice(){
+  const die=$('die');die.classList.remove('landed');die.classList.add('rolling');sfx.roll();
+  const iv=setInterval(()=>setFace(rndInt(1,6)),85);
+  await wait(900);clearInterval(iv);
+  const v=rndInt(1,6);setFace(v);
+  die.classList.remove('rolling');die.classList.add('landed');
+  tone(880,.1,'triangle',.2);return v;
+}
+
+/* ================= KUIS ================= */
+function drawQ(){if(!deck.length)deck=shuffle(POOL.map((_,i)=>i));return POOL[deck.pop()]}
+function showQuestion(){
+  answered=false;armed=false;$('rollBtn').disabled=true;$('die').classList.remove('armed');
+  curQ=drawQ();curOrder=shuffle([0,1,2,3]);
+  $('qText').innerHTML=curQ.q;$('exBox').hidden=true;
+  $('qOpts').innerHTML=curOrder.map((oi,i)=>
+    `<button class="qopt" data-i="${i}"><span class="qkey">${KEYS[i]}</span><span>${curQ.o[oi]}</span></button>`).join('');
+  [...$('qOpts').children].forEach(b=>b.onclick=()=>onAnswer(+b.dataset.i));
+  status(`✍️ <b>${players[cur].name}</b>, jawab soal dulu untuk membuka dadu!`);
+}
+function onAnswer(i){
+  if(answered||busy||gameOver)return;answered=true;
+  const correct=curOrder[i]===curQ.a,btns=[...$('qOpts').children];
+  btns.forEach(b=>b.disabled=true);
+  const correctIdx=curOrder.indexOf(curQ.a);
+  btns[correctIdx].classList.add('right');
+  if(!correct)btns[i].classList.add('wrong');
+  btns.forEach((b,k)=>{if(k!==correctIdx&&k!==i)b.classList.add('dim')});
+  $('exBox').innerHTML=`💡 <b>Pembahasan:</b> ${curQ.ex}`;$('exBox').hidden=false;
+  const p=players[cur];
+  if(correct){p.correct++;sfx.ok();
+    status(`✅ Benar! Silakan kocok dadu, <b>${p.name}</b>!`);
+    log(`✅ <b>${p.name}</b> menjawab benar`);
+    armed=true;$('rollBtn').disabled=false;$('die').classList.add('armed');
+  }else{p.wrong++;sfx.bad();
+    status(`❌ Salah! Giliran <b>${p.name}</b> hangus. Baca pembahasannya ya.`);
+    log(`❌ <b>${p.name}</b> menjawab salah`);
+    setTimeout(()=>{if(!gameOver)nextTurn()},2400);
+  }
+  renderPlayers();
+}
+
+/* ================= GERAK BIDAK ================= */
+$('rollBtn').onclick=async()=>{
+  if(!armed||busy||gameOver)return;
+  armed=false;busy=true;$('rollBtn').disabled=true;$('die').classList.remove('armed');
+  const v=await rollDice();
+  const p=players[cur];
+  status(`🎲 <b>${p.name}</b> mendapat <b>${v}</b>!`);
+  log(`🎲 <b>${p.name}</b> kocok dadu → ${v}`);
+  await wait(350);
+  // susun jalur (pantulan bila lewat 100)
+  const path=[];let pos=p.pos;
+  if(pos+v<=100){for(let k=1;k<=v;k++)path.push(pos+k)}
+  else{for(let k=pos+1;k<=100;k++)path.push(k);const rem=v-(100-pos);
+    for(let k=1;k<=rem;k++)path.push(100-k);
+    status(`🏁 Harus tepat 100! Bidak <b>memantul mundur ${rem} kotak</b>.`)}
+  for(let k=0;k<path.length;k++){p.pos=path[k];hop(p);setPiece(p,cur);markHere();sfx.step(k);renderPlayers();await wait(240)}
+  await wait(250);
+  // tangga / ular (tanpa rantai beruntun)
+  if(ladders[p.pos]&&!gameOver){const to=ladders[p.pos];
+    status(`🪜 Hore! <b>${p.name}</b> naik tangga ${p.pos} → ${to}!`);
+    log(`🪜 <b>${p.name}</b> naik tangga ${p.pos} → ${to}`);sfx.ladder();
+    p.el.classList.add('glide');p.pos=to;setPiece(p,cur);await wait(800);
+    p.el.classList.remove('glide');markHere();renderPlayers();
+    const r=p.el.getBoundingClientRect();fx(()=>burst(r.left+r.width/2,r.top,40));}
+  else if(snakes[p.pos]&&!gameOver){const to=snakes[p.pos];
+    status(`🐍 Aduh! <b>${p.name}</b> digigit ular, meluncur ${p.pos} → ${to}…`);
+    log(`🐍 <b>${p.name}</b> digigit ular ${p.pos} → ${to}`);sfx.snake();
+    p.el.classList.add('glide');p.pos=to;setPiece(p,cur);await wait(800);
+    p.el.classList.remove('glide');markHere();renderPlayers();}
+  busy=false;
+  if(p.pos===100){victory(p);return}
+  status(`Giliran berikutnya…`);
+  await wait(600);nextTurn();
+};
+
+/* ================= ALUR PERMAINAN ================= */
+function nextTurn(){if(gameOver)return;cur=(cur+1)%players.length;renderPlayers();showQuestion()}
+function victory(p){
+  gameOver=true;renderPlayers();
+  status(`🏆 <b>${p.name}</b> mencapai kotak 100!`);
+  log(`🏆 <b>${p.name}</b> MENANG!`);sfx.win();fx(()=>{rain(200);burst(innerWidth/2,innerHeight/3,90)});
+  $('winPiece').style.background=`radial-gradient(circle at 32% 28%,rgba(255,255,255,.75),rgba(255,255,255,0) 42%),${p.color}`;
+  $('winTitle').textContent=`${p.name.toUpperCase()} MENANG! 🏆`;
+  $('winTitle').style.color=p.color;
+  $('winSub').textContent=`Hebat! ${p.name} berhasil mencapai kotak 100 dengan ${p.correct} jawaban benar.`;
+  const sorted=[...players].sort((a,b)=>(b.pos-a.pos));
+  $('winStats').innerHTML=sorted.map((q,i)=>
+    `<div class="wrow"><span class="pdot" style="background:${q.color}"></span>
+     <span>${q.name}</span>
+     <span style="color:#8a7a5c;font-size:.76rem">kotak ${q.pos} • ✔${q.correct} ✘${q.wrong}</span>
+     <span class="medal">${['🥇','🥈','🥉','4️⃣'][i]}</span></div>`).join('');
+  setTimeout(()=>{$('ovWin').hidden=false},900);
+}
+function startGame(){
+  players=players.map((p,i)=>({...p,pos:1,correct:0,wrong:0}));
+  cur=0;gameOver=false;busy=false;deck=[];$('log').innerHTML='';
+  cellEls.forEach(c=>{c.style.boxShadow='';c.classList.remove('here')});
+  genSnakesLadders();drawOverlay();makePieces();markHere();renderPlayers();
+  $('ovSetup').hidden=true;$('ovWin').hidden=true;
+  status('Permainan dimulai! 🚀');log('🚀 Permainan dimulai — papan baru dibuat!');
+  showQuestion();
+}
+function setupNames(n){
+  $('nameGrid').innerHTML=PC.slice(0,n).map((p,i)=>
+    `<div class="nrow"><span class="pdot" style="background:${p.c}"></span>
+     <input id="nm${i}" maxlength="14" value="Pemain ${p.n}"></div>`).join('');
+}
+let selN=2;
+[...document.querySelectorAll('.cnt')].forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.cnt').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel');selN=+b.dataset.n;setupNames(selN);sfx.click();
+});
+$('startBtn').onclick=()=>{
+  ac();players=PC.slice(0,selN).map((p,i)=>({name:$('nm'+i).value.trim()||('Pemain '+p.n),color:p.c,pos:1,correct:0,wrong:0}));
+  startGame();
+};
+$('againBtn').onclick=()=>{sfx.click();startGame()};
+$('toSetupBtn').onclick=()=>{$('ovWin').hidden=true;$('ovSetup').hidden=false};
+$('newBoardBtn').onclick=()=>{if($('ovSetup').hidden&&!gameOver&&!busy){sfx.click();startGame()}else if(gameOver)startGame()};
+$('menuBtn').onclick=()=>{$('ovSetup').hidden=false};
+
+/* keyboard A-D / 1-4 */
+document.addEventListener('keydown',e=>{
+  if(!$('ovSetup').hidden&&(e.key==='Enter')){$('startBtn').click();return}
+  if(!$('ovWin').hidden&&(e.key==='Enter')){$('againBtn').click();return}
+  const map={'1':0,'2':1,'3':2,'4':3,'a':0,'b':1,'c':2,'d':3};
+  const k=e.key.toLowerCase();
+  if(k in map&&!answered&&!busy&&!gameOver){const b=$('qOpts').children[map[k]];if(b)b.click()}
+});
+
+/* ================= INIT ================= */
+buildBoard();genSnakesLadders();drawOverlay();setupNames(2);
+players=PC.slice(0,2).map(p=>({name:'Pemain '+p.n,color:p.c,pos:1,correct:0,wrong:0}));
+makePieces();markHere();renderPlayers();
+$('qText').innerHTML='Pilih jumlah pemain lalu tekan <b>MULAI PERMAINAN</b> untuk bermain! ⭕';
+status('Menunggu pemain…');
+</script>
+</body>
+</html>
